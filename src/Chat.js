@@ -1,71 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Chat.css";
 import ChatHeader from "./ChatHeader";
 import Message from "./Message";
-import io from "socket.io-client";
+import useWebSocket from "react-use-websocket";
+
+const WS_URL =
+  "wss://a5dx6pj25c.execute-api.us-west-2.amazonaws.com/production";
 
 function Chat() {
-   const socket = io("wss://a5dx6pj25c.execute-api.us-west-2.amazonaws.com/production");
-  // const user = useSelector(selectUser);
-  // const channelId = useSelector(selectChannelId);
-  // const channelName = useSelector(selectChannelName);
   const [input, setInput] = useState("");
-  // const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const { sendJsonMessage, lastMessage } = useWebSocket(WS_URL);
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (input.trim() !== "") {
+      sendJsonMessage({ action: "sendMessage", data: input });
+      setInput("");
+      console.log(messages);
+    }
+  };
 
   useEffect(() => {
-    // handle incoming messages
-    socket.on("message", (data) => {
-      console.log("Received message:", data);
-    });
-
-    // handle disconnection
-    socket.on("disconnect", () => {
-      console.log("Disconnected from server");
-    });
-
-    // handle errors
-    socket.on("error", (error) => {
-      console.error("WebSocket error:", error);
-    });
-
-    return () => {
-      socket.disconnect(); // disconnect when component unmounts
-    };
-  }, [socket]);
-
-  const sendMessage = (message) => {
-    socket.send(message);
-  };
+    if (lastMessage?.data) {
+      setMessages((prevMessages) => [...prevMessages, lastMessage.data]);
+    }
+  }, [lastMessage]);
 
   return (
     <div className="chat">
-      {/* <ChatHeader channelName={channelName} /> */}
-
       <div className="chat__messages">
-        {/* {messages.map((message) => (
-          <Message
-            timestamp={message.timestamp}
-            message={message.message}
-            user={message.user}
-          />
-        ))} */}
+        {messages.map((message) => (
+          <Message message={message} />
+        ))}
       </div>
-
       <div className="chat__input">
-        <form>
+        <form onSubmit={handleSubmit}>
           <input
-           value={input}
-          // disabled={!channelId}
-           onChange={(e) => setInput(e.target.value)}
-          // placeholder={`Message #${channelName}`}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message here"
           />
-          <button
-            // disabled={!channelId}
-            className="chat__inputButton"
-            type="submit"
-            onClick={sendMessage}
-          >
+          <button className="chat__inputButton" type="submit">
             Send Message
           </button>
         </form>
